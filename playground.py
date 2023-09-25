@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from numpy.typing import NDArray
 
 # the 4 downtempo playlist ids
 APRESLIST_ID = "1Gbl0gYulJ5oXzCZWyR1Hr"
@@ -112,4 +113,29 @@ axs[1][0].set_title("zzz")
 axs[1][1].hist(sheep_M[:,energy_dim], bins=n_bins)
 axs[1][1].set_title("Sheep")
 fig.suptitle("Distribution of energy for different playlist")
+fig.show()
+
+from scipy.stats import norm
+
+def plot_uni_norm_histogram(ax, data: NDArray, nbins: int = 20) -> None:
+    loc = np.mean(data)
+    scale = np.std(data)
+    ax.hist(data, bins=nbins, density=True)
+    x = np.linspace(norm.ppf(0.01,loc,scale),
+                    norm.ppf(0.99,loc,scale), 100)
+    ax.plot(x, norm.pdf(x,loc,scale),
+           'r-', lw=2, alpha=0.6, label='norm pdf')
+    ax.set_xlim([0, 1])
+
+n_bins = 20
+fig, axs = plt.subplots(2, 2, tight_layout=True)
+plot_uni_norm_histogram(axs[0][0], apreslist_M[:,energy_dim])
+axs[0][0].set_title("Apreslist")
+plot_uni_norm_histogram(axs[0][1], seriously_M[:,energy_dim])
+axs[0][1].set_title("Seriously")
+plot_uni_norm_histogram(axs[1][0], zzz_M[:,energy_dim])
+axs[1][0].set_title("zzz")
+plot_uni_norm_histogram(axs[1][1], sheep_M[:,energy_dim])
+axs[1][1].set_title("Sheep")
+fig.suptitle("Distribution of energy for different playlists")
 fig.show()
