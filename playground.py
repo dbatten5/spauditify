@@ -128,11 +128,21 @@ def fit_univariate_normal(data: NDArray):
     return norm(loc, scale)
 
 
-def plot_hist_and_dist(ax, data: NDArray, dist, nbins: int = 20) -> None:
+def plot_hist_and_dist(
+    ax,
+    data: NDArray,
+    dist,
+    nbins: int = 20,
+    limit: tuple[float, float] | None = None,
+    xlim: list[float] = [0, 1],
+) -> None:
     ax.hist(data, bins=nbins, density=True)
-    x = np.linspace(dist.ppf(0.01), dist.ppf(0.99), 100)
+    if limit:
+        x = np.linspace(*limit, 100)
+    else:
+        x = np.linspace(dist.ppf(0.01), dist.ppf(0.99), 100)
     ax.plot(x, dist.pdf(x), "r-", lw=2, alpha=0.6, label="pdf")
-    ax.set_xlim([0, 1])
+    ax.set_xlim(xlim)
 
 
 n_bins = 20
@@ -173,11 +183,11 @@ def fit_beta(data: NDArray):
 
 def fit_beta_optimized(data: NDArray):
     def func(p: tuple, r: NDArray) -> float:
-        return -np.sum(beta.logpdf(r,*p))
+        return -np.sum(beta.logpdf(r, *p))
 
     params = minimize(
         func,
-        x0=(1,1),
+        x0=(1, 1),
         args=(data),
         bounds=((0, None), (0, None)),
     )
@@ -227,7 +237,9 @@ norm_ll = (
     + np.sum(dist_3_b.logpdf(zzz_M[:, energy_dim]))
     + np.sum(dist_4_b.logpdf(sheep_M[:, energy_dim]))
 )
-print(f"combined log likelihood for beta distribution with standard fitting: {norm_ll:.2f}")
+print(
+    f"combined log likelihood for beta distribution with standard fitting: {norm_ll:.2f}"
+)
 
 norm_ll = (
     np.sum(dist_1_o.logpdf(apreslist_M[:, energy_dim]))
@@ -235,17 +247,23 @@ norm_ll = (
     + np.sum(dist_3_o.logpdf(zzz_M[:, energy_dim]))
     + np.sum(dist_4_o.logpdf(sheep_M[:, energy_dim]))
 )
-print(f"combined log likelihood for beta distribution with optimized fitting: {norm_ll:.2f}")
+print(
+    f"combined log likelihood for beta distribution with optimized fitting: {norm_ll:.2f}"
+)
 
 print("Apreslist")
 print(f"Normal: {np.sum(dist_1.logpdf(apreslist_M[:, energy_dim])):.2f}")
 print(f"Beta standard fit: {np.sum(dist_1_b.logpdf(apreslist_M[:, energy_dim])):.2f}")
-print(f"Beta optimized fit: {np.sum(dist_1_o.logpdf(apreslist_M[:, energy_dim])):.2f}\n")
+print(
+    f"Beta optimized fit: {np.sum(dist_1_o.logpdf(apreslist_M[:, energy_dim])):.2f}\n"
+)
 
 print("Seriously")
 print(f"Normal: {np.sum(dist_2.logpdf(seriously_M[:, energy_dim])):.2f}")
 print(f"Beta standard fit: {np.sum(dist_2_b.logpdf(seriously_M[:, energy_dim])):.2f}")
-print(f"Beta optimized fit: {np.sum(dist_2_o.logpdf(seriously_M[:, energy_dim])):.2f}\n")
+print(
+    f"Beta optimized fit: {np.sum(dist_2_o.logpdf(seriously_M[:, energy_dim])):.2f}\n"
+)
 
 print("zzz")
 print(f"Normal: {np.sum(dist_3.logpdf(zzz_M[:, energy_dim])):.2f}")
@@ -256,4 +274,116 @@ print("sheep")
 print(f"Normal: {np.sum(dist_4.logpdf(sheep_M[:, energy_dim])):.2f}")
 print(f"Beta standard fit: {np.sum(dist_4_b.logpdf(sheep_M[:, energy_dim])):.2f}")
 print(f"Beta optimized fit: {np.sum(dist_4_o.logpdf(sheep_M[:, energy_dim])):.2f}\n")
+
+
+n_bins = 20
+fig, axs = plt.subplots(2, 2, tight_layout=True)
+dist_1 = fit_beta(apreslist_M[:, dance_dim])
+plot_hist_and_dist(axs[0][0], apreslist_M[:, dance_dim], dist_1, limit=(0, 1))
+axs[0][0].set_title("Apreslist")
+dist_2 = fit_beta(seriously_M[:, dance_dim])
+plot_hist_and_dist(axs[0][1], seriously_M[:, dance_dim], dist_2, limit=(0, 1))
+axs[0][1].set_title("Seriously")
+dist_3 = fit_beta(zzz_M[:, dance_dim])
+plot_hist_and_dist(axs[1][0], zzz_M[:, dance_dim], dist_3, limit=(0, 1))
+axs[1][0].set_title("zzz")
+dist_4 = fit_beta(sheep_M[:, dance_dim])
+plot_hist_and_dist(axs[1][1], sheep_M[:, dance_dim], dist_4, limit=(0, 1))
+axs[1][1].set_title("Sheep")
+fig.suptitle("Distribution of danceability for different playlists")
+plt.show()
+
+
+def plot_feature(feat_name: str, nbins: int = 20) -> None:
+    feat = features.index(feat_name)
+
+    fig, axs = plt.subplots(2, 2, tight_layout=True, sharex=True)
+    axs[0][0].hist(apreslist_M[:, feat], bins=nbins)
+    axs[0][0].set_title("Apreslist")
+    axs[0][1].hist(seriously_M[:, feat], bins=nbins)
+    axs[0][1].set_title("Seriously")
+    axs[1][0].hist(zzz_M[:, feat], bins=nbins)
+    axs[1][0].set_title("zzz")
+    axs[1][1].hist(sheep_M[:, feat], bins=nbins)
+    axs[1][1].set_title("Sheep")
+    fig.suptitle(f"Distribution of {feat_name} for different playlists")
+    plt.show()
+
+
+def fit_and_plot_beta(feat_name: str, nbins: int = 20) -> tuple:
+    feat = features.index(feat_name)
+
+    fig, axs = plt.subplots(2, 2, tight_layout=True)
+    dist_1 = fit_beta(apreslist_M[:, feat])
+    plot_hist_and_dist(
+        axs[0][0], apreslist_M[:, feat], dist_1, limit=(0, 1), nbins=nbins
+    )
+    axs[0][0].set_title("Apreslist")
+    dist_2 = fit_beta(seriously_M[:, feat])
+    plot_hist_and_dist(
+        axs[0][1], seriously_M[:, feat], dist_2, limit=(0, 1), nbins=nbins
+    )
+    axs[0][1].set_title("Seriously")
+    dist_3 = fit_beta(zzz_M[:, feat])
+    plot_hist_and_dist(axs[1][0], zzz_M[:, feat], dist_3, limit=(0, 1), nbins=nbins)
+    axs[1][0].set_title("zzz")
+    dist_4 = fit_beta(sheep_M[:, feat])
+    plot_hist_and_dist(axs[1][1], sheep_M[:, feat], dist_4, limit=(0, 1), nbins=nbins)
+    axs[1][1].set_title("Sheep")
+    fig.suptitle(f"Distribution of {feat_name} for different playlists")
+    plt.show()
+
+    return dist_1, dist_2, dist_3, dist_4
+
+
+from scipy.stats import skewnorm
+
+def fit_skew_normal(data: NDArray):
+    params = skewnorm.fit(data)
+    return skewnorm(*params)
+
+
+loudness_dim = features.index("loudness")
+n_bins = 20
+fig, axs = plt.subplots(2, 2, tight_layout=True)
+dist_1 = fit_skew_normal(apreslist_M[:, loudness_dim])
+plot_hist_and_dist(axs[0][0], apreslist_M[:, loudness_dim], dist_1, xlim=[-45,0])
+axs[0][0].set_title("Apreslist")
+dist_2 = fit_skew_normal(seriously_M[:, loudness_dim])
+plot_hist_and_dist(axs[0][1], seriously_M[:, loudness_dim], dist_2, xlim=[-45,0])
+axs[0][1].set_title("Seriously")
+dist_3 = fit_skew_normal(zzz_M[:, loudness_dim])
+plot_hist_and_dist(axs[1][0], zzz_M[:, loudness_dim], dist_3, xlim=[-45,0])
+axs[1][0].set_title("zzz")
+dist_4 = fit_skew_normal(sheep_M[:, loudness_dim])
+plot_hist_and_dist(axs[1][1], sheep_M[:, loudness_dim], dist_4, xlim=[-45,0])
+axs[1][1].set_title("Sheep")
+fig.suptitle("Distribution of loudness for different playlists")
+plt.show()
+
+tempo_dim = features.index("tempo")
+n_bins = 20
+fig, axs = plt.subplots(2, 2, tight_layout=True)
+dist_1 = fit_skew_normal(apreslist_M[:, tempo_dim])
+plot_hist_and_dist(axs[0][0], apreslist_M[:, tempo_dim], dist_1, xlim=[0,200])
+axs[0][0].set_title("Apreslist")
+dist_2 = fit_skew_normal(seriously_M[:, tempo_dim])
+plot_hist_and_dist(axs[0][1], seriously_M[:, tempo_dim], dist_2, xlim=[0,200])
+axs[0][1].set_title("Seriously")
+dist_3 = fit_skew_normal(zzz_M[:, tempo_dim])
+plot_hist_and_dist(axs[1][0], zzz_M[:, tempo_dim], dist_3, xlim=[0,200])
+axs[1][0].set_title("zzz")
+dist_4 = fit_skew_normal(sheep_M[:, tempo_dim])
+plot_hist_and_dist(axs[1][1], sheep_M[:, tempo_dim], dist_4, xlim=[0,200])
+axs[1][1].set_title("Sheep")
+fig.suptitle("Distribution of tempo for different playlists")
+plt.show()
+
+So to recap we have 6 potentially useful features in:
+    * acousticness
+    * danceability
+    * energy
+    * instrumentalness
+    * loudness
+    * valence
 
