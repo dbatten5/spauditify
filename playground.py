@@ -48,7 +48,7 @@ def get_track_data(tracks: dict) -> list[dict]:
             "name": tr["name"],
             "artist": tr["artists"][0]["name"],
             "album": tr["album"]["name"],
-            "uri": tr["uri"]
+            "uri": tr["uri"],
         }
         data.append(datum)
     return data
@@ -483,48 +483,73 @@ sheep_ll = np.hstack(
     [models[ii][3].logpdf(all_tracks_M[:, ii]).reshape(-1, 1) for ii in range(6)]
 )
 
-all_ll = np.hstack((
-    np.sum(apreslist_ll, 1).reshape(-1, 1),
-    np.sum(seriously_ll, 1).reshape(-1, 1),
-    np.sum(zzz_ll, 1).reshape(-1, 1),
-    np.sum(sheep_ll, 1).reshape(-1, 1),
-))
+all_ll = np.hstack(
+    (
+        np.sum(apreslist_ll, 1).reshape(-1, 1),
+        np.sum(seriously_ll, 1).reshape(-1, 1),
+        np.sum(zzz_ll, 1).reshape(-1, 1),
+        np.sum(sheep_ll, 1).reshape(-1, 1),
+    )
+)
 
 np.argmax(all_ll, 1)[:10]
 
 wt = apreslist_track_data[5]
 print(f"{wt['name']} by {wt['artist']}")
 
-sp.audio_features(apreslist_track_data[5]["id"])
-
 t = all_tracks_M[5]
 bx = np.linspace(0.001, 0.999, 100)
 gx = np.linspace(-45, 0, 100)
 fig, axs = plt.subplots(2, 3, tight_layout=True)
-axs[0][0].axvline(t[0], color="g", linestyle='--')
+axs[0][0].axvline(t[0], color="g", linestyle="--")
 axs[0][0].plot(bx, models[0][0].pdf(bx), "r-", lw=2, alpha=0.6, label="Apreslist")
 axs[0][0].plot(bx, models[0][1].pdf(bx), "b-", lw=2, alpha=0.6, label="Seriously")
 axs[0][0].set_title("Energy")
-axs[0][1].axvline(t[1], color="g", linestyle='--')
+axs[0][1].axvline(t[1], color="g", linestyle="--")
 axs[0][1].plot(bx, models[1][0].pdf(bx), "r-", lw=2, alpha=0.6, label="Apreslist")
 axs[0][1].plot(bx, models[1][1].pdf(bx), "b-", lw=2, alpha=0.6, label="Seriously")
 axs[0][1].set_title("Danceability")
-axs[0][2].axvline(t[2], color="g", linestyle='--')
+axs[0][2].axvline(t[2], color="g", linestyle="--")
 axs[0][2].plot(bx, models[2][0].pdf(bx), "r-", lw=2, alpha=0.6, label="Apreslist")
 axs[0][2].plot(bx, models[2][1].pdf(bx), "b-", lw=2, alpha=0.6, label="Seriously")
 axs[0][2].set_title("Acousticness")
 axs[0][2].legend()
-axs[1][0].axvline(t[3], color="g", linestyle='--')
+axs[1][0].axvline(t[3], color="g", linestyle="--")
 axs[1][0].plot(bx, models[3][0].pdf(bx), "r-", lw=2, alpha=0.6, label="Apreslist")
 axs[1][0].plot(bx, models[3][1].pdf(bx), "b-", lw=2, alpha=0.6, label="Seriously")
 axs[1][0].set_title("Instrumentalness")
-axs[1][1].axvline(t[4], color="g", linestyle='--')
+axs[1][1].axvline(t[4], color="g", linestyle="--")
 axs[1][1].plot(gx, models[4][0].pdf(gx), "r-", lw=2, alpha=0.6, label="Apreslist")
 axs[1][1].plot(gx, models[4][1].pdf(gx), "b-", lw=2, alpha=0.6, label="Seriously")
 axs[1][1].set_title("Loudness")
-axs[1][2].axvline(t[5], color="g", linestyle='--')
+axs[1][2].axvline(t[5], color="g", linestyle="--")
 axs[1][2].plot(bx, models[5][0].pdf(bx), "r-", lw=2, alpha=0.6, label="Apreslist")
 axs[1][2].plot(bx, models[5][1].pdf(bx), "b-", lw=2, alpha=0.6, label="Seriously")
 axs[1][2].set_title("Valence")
 fig.suptitle("Distribution of energy for different playlists")
 plt.show()
+
+y_pred = np.argmax(all_ll, 1)
+y_true = np.hstack(
+    (
+        np.zeros(len(apreslist_track_data)),
+        np.ones(len(seriously_track_data)),
+        np.ones(len(zzz_track_data)) * 2,
+        np.ones(len(sheep_track_data)) * 3,
+    )
+)
+
+from sklearn import metrics
+
+cm = metrics.confusion_matrix(y_true, y_pred)
+
+cm_display = metrics.ConfusionMatrixDisplay(
+    confusion_matrix=cm, display_labels=["Apreslist", "Seriously", "zzz", "Sheep"]
+)
+
+cm_display.plot()
+plt.show()
+
+print(f"Total tracks: {len(y_pred)}")
+print(f"Correctly placed tracks: {np.sum(y_pred==y_true)}")
+print(f"Incorrectly placed tracks: {len(y_pred)-np.sum(y_pred==y_true)}")
