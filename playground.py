@@ -645,3 +645,38 @@ def get_all_ll(energy_weight: float = 1.0) -> NDArray:
         )
     )
     return all_ll
+
+
+import pandas as pd
+
+all_df = pd.DataFrame(
+    apreslist_track_data + seriously_track_data + zzz_track_data + sheep_track_data
+)
+X = np.vstack((apreslist_M, seriously_M, zzz_M, sheep_M))
+X_df = pd.DataFrame(X, columns=features)
+
+all_df = pd.concat((all_df, X_df), axis=1)
+
+playlist_col = (
+    ["Apreslist"] * len(apreslist_track_data)
+    + ["Seriously"] * len(seriously_track_data)
+    + ["zzz"] * len(zzz_track_data)
+    + ["Sheep"] * len(sheep_track_data)
+)
+all_df["playlist"] = playlist_col
+
+from sklearn.cluster import KMeans
+
+kmeans = KMeans(n_clusters=4, random_state=0, n_init="auto").fit(X)
+
+labels = kmeans.labels_
+
+plt.scatter(np.arange(len(labels)), labels)
+plt.show()
+
+plt.scatter(np.arange(len(labels)), labels)
+plt.xlabel("Track index")
+plt.ylabel("Playlist assignment")
+plt.title("Assignment of tracks from KMeans")
+plt.show()
+
