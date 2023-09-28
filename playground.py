@@ -553,3 +553,95 @@ plt.show()
 print(f"Total tracks: {len(y_pred)}")
 print(f"Correctly placed tracks: {np.sum(y_pred==y_true)}")
 print(f"Incorrectly placed tracks: {len(y_pred)-np.sum(y_pred==y_true)}")
+
+cur_apreslist = all_ll[: len(apreslist_track_data), :]
+apres_to_move_ii = np.where(np.argmax(cur_apreslist, 1) == 2)[0]
+for ii in apres_to_move_ii:
+    t = apreslist_track_data[ii]
+    print(f"{t['name']} by {t['artist']}")
+
+
+def get_playlist_index(pl_name: str) -> int:
+    if pl_name.lower() == "apreslist":
+        return 0
+    if pl_name.lower() == "seriously":
+        return 1
+    if pl_name.lower() == "zzz":
+        return 2
+    if pl_name.lower() == "sheep":
+        return 3
+    return 0
+
+
+def plot_track_against_playlists(track_index: int, pl_1: str, pl_2: str) -> None:
+    pl_1_i = get_playlist_index(pl_1)
+    pl_2_i = get_playlist_index(pl_2)
+    t = all_tracks_M[track_index]
+    bx = np.linspace(0.001, 0.999, 100)
+    gx = np.linspace(-45, 0, 100)
+    fig, axs = plt.subplots(2, 3, tight_layout=True)
+    axs[0][0].axvline(t[0], color="g", linestyle="--")
+    axs[0][0].plot(bx, models[0][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[0][0].plot(bx, models[0][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[0][0].set_title("Energy")
+    axs[0][1].axvline(t[1], color="g", linestyle="--")
+    axs[0][1].plot(bx, models[1][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[0][1].plot(bx, models[1][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[0][1].set_title("Danceability")
+    axs[0][2].axvline(t[2], color="g", linestyle="--")
+    axs[0][2].plot(bx, models[2][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[0][2].plot(bx, models[2][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[0][2].set_title("Acousticness")
+    axs[0][2].legend()
+    axs[1][0].axvline(t[3], color="g", linestyle="--")
+    axs[1][0].plot(bx, models[3][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[1][0].plot(bx, models[3][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[1][0].set_title("Instrumentalness")
+    axs[1][1].axvline(t[4], color="g", linestyle="--")
+    axs[1][1].plot(gx, models[4][pl_1_i].pdf(gx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[1][1].plot(gx, models[4][pl_2_i].pdf(gx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[1][1].set_title("Loudness")
+    axs[1][2].axvline(t[5], color="g", linestyle="--")
+    axs[1][2].plot(bx, models[5][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[1][2].plot(bx, models[5][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[1][2].set_title("Valence")
+    fig.suptitle("Distribution of energy for different playlists")
+    plt.show()
+
+
+def get_all_ll(energy_weight: float = 1.0) -> NDArray:
+    all_tracks_M_weighted = all_tracks_M.copy()
+    all_tracks_M_weighted[:, 0] *= energy_weight
+    apreslist_ll = np.hstack(
+        [
+            models[ii][0].logpdf(all_tracks_M_weighted[:, ii]).reshape(-1, 1)
+            for ii in range(6)
+        ]
+    )
+    seriously_ll = np.hstack(
+        [
+            models[ii][1].logpdf(all_tracks_M_weighted[:, ii]).reshape(-1, 1)
+            for ii in range(6)
+        ]
+    )
+    zzz_ll = np.hstack(
+        [
+            models[ii][2].logpdf(all_tracks_M_weighted[:, ii]).reshape(-1, 1)
+            for ii in range(6)
+        ]
+    )
+    sheep_ll = np.hstack(
+        [
+            models[ii][3].logpdf(all_tracks_M_weighted[:, ii]).reshape(-1, 1)
+            for ii in range(6)
+        ]
+    )
+    all_ll = np.hstack(
+        (
+            np.sum(apreslist_ll, 1).reshape(-1, 1),
+            np.sum(seriously_ll, 1).reshape(-1, 1),
+            np.sum(zzz_ll, 1).reshape(-1, 1),
+            np.sum(sheep_ll, 1).reshape(-1, 1),
+        )
+    )
+    return all_ll
