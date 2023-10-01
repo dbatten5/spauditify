@@ -665,6 +665,8 @@ playlist_col = (
 )
 all_df["playlist"] = playlist_col
 
+all_df.to_csv("data/all_df.csv")
+
 from sklearn.cluster import KMeans
 
 kmeans = KMeans(n_clusters=4, random_state=0, n_init="auto").fit(X)
@@ -680,3 +682,92 @@ plt.ylabel("Playlist assignment")
 plt.title("Assignment of tracks from KMeans")
 plt.show()
 
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, all_df["playlist"], test_size=0.2, random_state=42
+)
+
+y = all_df["playlist"]
+
+from sklearn.tree import DecisionTreeClassifier
+
+clf = DecisionTreeClassifier(random_state=0)
+
+clf.fit(X, y)
+
+clf.score(X, y)
+
+i = np.where(clf.predict(X) != y)[0]
+
+candidates = all_df.iloc[i][["name", "artist", "playlist"]]
+candidates["predicted playlist"] = clf.predict(X)[i]
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+clf_1 = DecisionTreeClassifier(random_state=1)
+clf_1.fit(X_train, y_train)
+clf_1.score(X, y)
+
+
+def get_candidates(
+    tree: DecisionTreeClassifier, X: NDArray, y: NDArray | pd.Series
+) -> pd.DataFrame:
+    i = np.where(tree.predict(X) != y)[0]
+    candidates = all_df.iloc[i][["name", "artist", "playlist"]]
+    candidates["suggested playlist"] = tree.predict(X)[i]
+    return candidates
+
+
+clf_2 = DecisionTreeClassifier(random_state=2, max_depth=10)
+clf_2.fit(X, y)
+clf_2.score(X, y)
+candidates = get_candidates(clf_2, X, y)
+
+
+def plot_track_against_playlists_new(ts: pd.Series) -> None:
+    pl_1 = ts["playlist"]
+    pl_2 = ts["suggested playlist"]
+    pl_1_i = get_playlist_index(pl_1)
+    pl_2_i = get_playlist_index(pl_2)
+    t = all_tracks_M[ts.name]
+    bx = np.linspace(0.001, 0.999, 100)
+    gx = np.linspace(-45, 0, 100)
+    fig, axs = plt.subplots(2, 3, tight_layout=True, figsize=(14, 7))
+    axs[0][0].axvline(t[0], color="g", linestyle="--")
+    axs[0][0].plot(bx, models[0][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[0][0].plot(bx, models[0][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[0][0].set_title("Energy")
+    axs[0][1].axvline(t[1], color="g", linestyle="--")
+    axs[0][1].plot(bx, models[1][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[0][1].plot(bx, models[1][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[0][1].set_title("Danceability")
+    axs[0][2].axvline(t[2], color="g", linestyle="--")
+    axs[0][2].plot(bx, models[2][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[0][2].plot(bx, models[2][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[0][2].set_title("Acousticness")
+    axs[0][2].legend()
+    axs[1][0].axvline(t[3], color="g", linestyle="--")
+    axs[1][0].plot(bx, models[3][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[1][0].plot(bx, models[3][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[1][0].set_title("Instrumentalness")
+    axs[1][1].axvline(t[4], color="g", linestyle="--")
+    axs[1][1].plot(gx, models[4][pl_1_i].pdf(gx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[1][1].plot(gx, models[4][pl_2_i].pdf(gx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[1][1].set_title("Loudness")
+    axs[1][2].axvline(t[5], color="g", linestyle="--")
+    axs[1][2].plot(bx, models[5][pl_1_i].pdf(bx), "r-", lw=2, alpha=0.6, label=pl_1)
+    axs[1][2].plot(bx, models[5][pl_2_i].pdf(bx), "b-", lw=2, alpha=0.6, label=pl_2)
+    axs[1][2].set_title("Valence")
+    fig.suptitle(
+        f"Feature values for {ts['name']} compared to distributions for {pl_1} and {pl_2}"
+    )
+    plt.show()
+
+
+plot_track_against_playlists_new(candidates.loc[12])
+
+indices = np.random.rand(len(all_df)) < 0.2
