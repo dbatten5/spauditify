@@ -771,3 +771,77 @@ def plot_track_against_playlists_new(ts: pd.Series) -> None:
 plot_track_against_playlists_new(candidates.loc[12])
 
 indices = np.random.rand(len(all_df)) < 0.2
+
+
+
+print("Apreslist")
+print(f"Normal: {np.sum(en[0].logpdf(apr_df['energy'])):.2f}")
+print(f"Beta standard fit: {np.sum(eb_f[0].logpdf(apr_df['energy'])):.2f}")
+print(f"Beta optimized fit: {np.sum(eb_o[0].logpdf(apr_df['energy'])):.2f}\n")
+
+print("Seriously")
+print(f"Normal: {np.sum(en[1].logpdf(ser_df['energy'])):.2f}")
+print(f"Beta standard fit: {np.sum(eb_f[1].logpdf(ser_df['energy'])):.2f}")
+print(f"Beta optimized fit: {np.sum(eb_o[1].logpdf(ser_df['energy'])):.2f}\n")
+
+print("zzz")
+print(f"Normal: {np.sum(en[2].logpdf(zzz_df['energy'])):.2f}")
+print(f"Beta standard fit: {np.sum(eb_f[2].logpdf(zzz_df['energy'])):.2f}")
+print(f"Beta optimized fit: {np.sum(eb_o[2].logpdf(zzz_df['energy'])):.2f}\n")
+
+print("Sheep")
+print(f"Normal: {np.sum(en[3].logpdf(she_df['energy'])):.2f}")
+print(f"Beta standard fit: {np.sum(eb_f[3].logpdf(she_df['energy'])):.2f}")
+print(f"Beta optimized fit: {np.sum(eb_o[3].logpdf(she_df['energy'])):.2f}\n")
+
+db = []
+
+def fit_and_plot_beta(feature: str) -> list:
+    dists = []
+    g = sns.FacetGrid(all_df, col="playlist", col_wrap=2, sharey=False, aspect=1.4, legend_out=False)
+    g.map_dataframe(sns.histplot, x=feature, bins=20, kde=True, stat="density", label="KDE")
+    g.set_titles(col_template="{col_name}")
+    for col_val, ax in g.axes_dict.items():
+        cur_feat = all_df[all_df["playlist"] == col_val][feature]
+        dist = fit_beta(cur_feat)
+        dists.append(dist)
+        x = np.linspace(0.001, 0.999, 100)
+        ax.plot(x, dist.pdf(x), "r-", lw=2, alpha=0.6, label="beta pdf")
+        ax.set_xlim([0, 1])
+        ax.legend()
+    g.fig.suptitle(f"Distribution of {feature} for different playlists", y=1.05)
+    plt.show()
+    return dists
+
+def plot_feature(feature: str, nbins: int = 20) -> None:
+    g1 = sns.FacetGrid(all_df, col="playlist", col_wrap=2, sharey=False, aspect=1.4)
+    g1.map_dataframe(sns.histplot, x=feature, bins=nbins, kde=True, stat="density", label="KDE")
+    g1.set_titles(col_template="{col_name}")
+    for col_val, ax in g1.axes_dict.items():
+        mean = all_df[all_df["playlist"] == col_val][feature].mean()
+        ax.axvline(mean, ls="--", c="r", label="mean")
+        ax.legend()
+    g1.fig.suptitle(f"Distribution of {feature} for different playlists", y=1.05)
+
+    g2 = sns.displot(data=all_df, x=feature, hue="playlist", kind="kde")
+    g2.set(title=f"KDE for {feature} across different playlists")
+
+    plt.show()
+
+
+def fit_and_plot_beta(feature: str, fit_dist, nbins: int = 20) -> list:
+    dists = []
+    g = sns.FacetGrid(all_df, col="playlist", col_wrap=2, sharey=False, aspect=1.4, legend_out=False)
+    g.map_dataframe(sns.histplot, x=feature, bins=nbins, kde=True, stat="density", label="KDE")
+    g.set_titles(col_template="{col_name}")
+    for col_val, ax in g.axes_dict.items():
+        cur_feat = all_df[all_df["playlist"] == col_val][feature]
+        dist = fit_dist(cur_feat)
+        dists.append(dist)
+        x = np.linspace(0.001, 0.999, 100)
+        ax.plot(x, dist.pdf(x), "r-", lw=2, alpha=0.6, label="fit pdf")
+        ax.set_xlim([0, 1])
+        ax.legend()
+    g.fig.suptitle(f"Distribution of {feature} for different playlists", y=1.05)
+    plt.show()
+    return dists
